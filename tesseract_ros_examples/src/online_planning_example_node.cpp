@@ -36,9 +36,6 @@
 #include <tesseract_rosutils/utils.h>
 #include <std_srvs/srv/set_bool.hpp>
 
-#include <tesseract_environment/environment.h>
-#include <tesseract_scene_graph/graph.h>
-
 using namespace tesseract_examples;
 using namespace tesseract_rosutils;
 
@@ -89,18 +86,18 @@ int main(int argc, char** argv)
   if (plotting)
     plotter = std::make_shared<ROSPlotting>(env->getSceneGraph()->getRoot());
 
-  OnlinePlanningExample example(env, plotter, static_cast<int>(steps), box_size, update_start_state, use_continuous);
+  OnlinePlanningExample example(env, plotter, steps, box_size, update_start_state, use_continuous);
 
-  auto fn1 = [&example](std_srvs::srv::SetBool::Request::SharedPtr req,   // NOLINT
-                        std_srvs::srv::SetBool::Response::SharedPtr res)  // NOLINT
-  {
+  auto fn1 = [&example](std_srvs::srv::SetBool::Request::SharedPtr req,
+                        std_srvs::srv::SetBool::Response::SharedPtr res) {
     example.toggleRealtime(req->data);
     res->success = true;
     return true;
   };
 
-  auto fn2 = [&example](const sensor_msgs::msg::JointState::ConstSharedPtr joint_state)  // NOLINT
-  { example.updateState(joint_state->name, joint_state->position); };
+  auto fn2 = [&example](const sensor_msgs::msg::JointState::ConstSharedPtr joint_state) {
+    example.updateState(joint_state->name, joint_state->position);
+  };
 
   // Set up ROS interfaces
   auto joint_state_subscriber_ =

@@ -47,10 +47,6 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_monitoring/current_state_monitor.h>
 
-#include <tesseract_kinematics/core/joint_group.h>
-
-#include <tesseract_environment/environment.h>
-
 namespace tesseract_monitoring
 {
 CurrentStateMonitor::CurrentStateMonitor(const tesseract_environment::Environment::ConstPtr& env)
@@ -60,7 +56,7 @@ CurrentStateMonitor::CurrentStateMonitor(const tesseract_environment::Environmen
 
 CurrentStateMonitor::CurrentStateMonitor(const tesseract_environment::Environment::ConstPtr& env,
                                          rclcpp::Node::SharedPtr node)
-  : node_(std::move(node))
+  : node_(node)
   , env_(env)
   , env_state_(env->getState())
   , last_environment_revision_(env_->getRevision())
@@ -68,7 +64,6 @@ CurrentStateMonitor::CurrentStateMonitor(const tesseract_environment::Environmen
   , copy_dynamics_(false)
   , error_(std::numeric_limits<double>::epsilon())
   , tf_broadcaster_(node_)
-  , publish_tf_(true)
 {
 }
 
@@ -122,7 +117,7 @@ void CurrentStateMonitor::startStateMonitor(const std::string& joint_states_topi
       joint_state_subscriber_ = node_->create_subscription<sensor_msgs::msg::JointState>(
           joint_states_topic,
           rclcpp::SensorDataQoS(),
-          std::bind(&CurrentStateMonitor::jointStateCallback, this, std::placeholders::_1));  // NOLINT
+          std::bind(&CurrentStateMonitor::jointStateCallback, this, std::placeholders::_1));
     }
     state_monitor_started_ = true;
     monitor_start_time_ = node_->now();
@@ -150,7 +145,7 @@ std::string CurrentStateMonitor::getMonitoredTopic() const
   return "";
 }
 
-bool CurrentStateMonitor::isPassiveOrMimicDOF(const std::string& /*dof*/) const  // NOLINT
+bool CurrentStateMonitor::isPassiveOrMimicDOF(const std::string& /*dof*/) const
 {
   // TODO: Levi Need to implement
 
@@ -268,7 +263,7 @@ bool CurrentStateMonitor::haveCompleteState(const rclcpp::Duration& age, std::ve
   return result;
 }
 
-bool CurrentStateMonitor::waitForCurrentState(const rclcpp::Time& t, double wait_time) const
+bool CurrentStateMonitor::waitForCurrentState(rclcpp::Time t, double wait_time) const
 {
   rclcpp::Time start = rclcpp::Clock{ RCL_STEADY_TIME }.now();
   rclcpp::Duration elapsed(0, 0);
@@ -326,7 +321,7 @@ bool CurrentStateMonitor::waitForCompleteState(const std::string& manip, double 
   return ok;
 }
 
-void CurrentStateMonitor::jointStateCallback(const sensor_msgs::msg::JointState::ConstSharedPtr joint_state)  // NOLINT
+void CurrentStateMonitor::jointStateCallback(const sensor_msgs::msg::JointState::ConstSharedPtr joint_state)
 {
   if (!env_->isInitialized())
     return;

@@ -30,11 +30,8 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_common/unit_test_utils.h>
 #include <tesseract_common/utils.h>
 #include <tesseract_geometry/geometries.h>
-#include <tesseract_geometry/impl/octree_utils.h>
 #include <tesseract_geometry/mesh_parser.h>
 #include <tesseract_support/tesseract_support_resource_locator.h>
-
-#include <tesseract_msgs/msg/geometry.h>
 #include <tesseract_rosutils/utils.h>
 
 using namespace tesseract_geometry;
@@ -47,7 +44,7 @@ using namespace tesseract_rosutils;
 inline void testToMsgFromMsg(const tesseract_geometry::Geometry& object)
 {
   // Serialize to ros message
-  tesseract_msgs::msg::Geometry msg;
+  tesseract_msgs::Geometry msg;
   EXPECT_TRUE(toMsg(msg, object));
 
   // Deserialize to object
@@ -120,15 +117,13 @@ TEST(TesseractRosutilsGeometryMsgConversions, Octree)  // NOLINT
   pc.points.emplace_back(-.5, -0.5, -0.5);
   pc.points.emplace_back(-.5, 0.5, 0.5);
   {
-    std::unique_ptr<octomap::OcTree> ot = createOctree(pc, 1, false, true);
-    auto object = std::make_shared<tesseract_geometry::Octree>(
-        std::move(ot), tesseract_geometry::OctreeSubType::BOX, false, true);
+    auto object =
+        std::make_shared<tesseract_geometry::Octree>(pc, 1, tesseract_geometry::Octree::SubType::BOX, false, true);
     testToMsgFromMsg(*object);
   }
   {
-    std::unique_ptr<octomap::OcTree> ot = createOctree(pc, 1, false, true);
-    auto object = std::make_shared<tesseract_geometry::Octree>(
-        std::move(ot), tesseract_geometry::OctreeSubType::BOX, false, false);
+    auto object =
+        std::make_shared<tesseract_geometry::Octree>(pc, 1, tesseract_geometry::Octree::SubType::BOX, false, false);
     testToMsgFromMsg(*object);
   }
 }

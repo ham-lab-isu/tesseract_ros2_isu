@@ -51,10 +51,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_monitoring/constants.h>
-
-#include <tesseract_scene_graph/scene_state.h>
-
-#include <tesseract_environment/fwd.h>
+#include <tesseract_environment/environment.h>
 
 namespace tesseract_monitoring
 {
@@ -75,15 +72,14 @@ public:
    * @param robot_model The current kinematic model to build on
    * @param tf A pointer to the tf transformer to use
    */
-  CurrentStateMonitor(const std::shared_ptr<const tesseract_environment::Environment>& env);
+  CurrentStateMonitor(const tesseract_environment::Environment::ConstPtr& env);
 
   /** @brief Constructor.
    *  @param robot_model The current kinematic model to build on
    *  @param tf A pointer to the tf transformer to use
    *  @param node A rclcpp::Node to access ROS info
    */
-  CurrentStateMonitor(const std::shared_ptr<const tesseract_environment::Environment>& env,
-                      rclcpp::Node::SharedPtr node);
+  CurrentStateMonitor(const tesseract_environment::Environment::ConstPtr& env, rclcpp::Node::SharedPtr node);
 
   ~CurrentStateMonitor();
   CurrentStateMonitor(const CurrentStateMonitor&) = delete;
@@ -154,7 +150,7 @@ public:
   /** @brief Wait for at most \e wait_time seconds (default 1s) for a robot state more recent than t
    *  @return true on success, false if up-to-date robot state wasn't received within \e wait_time
    */
-  bool waitForCurrentState(const rclcpp::Time& t, double wait_time = 1.0) const;
+  bool waitForCurrentState(rclcpp::Time t /* = node_->now() */, double wait_time = 1.0) const;
 
   /** @brief Wait for at most \e wait_time seconds until the complete robot state is known.
       @return true if the full state is known */
@@ -188,11 +184,11 @@ public:
   void enableCopyDynamics(bool enabled) { copy_dynamics_ = enabled; }
 
 private:
-  void jointStateCallback(const sensor_msgs::msg::JointState::ConstSharedPtr joint_state);  // NOLINT
+  void jointStateCallback(const sensor_msgs::msg::JointState::ConstSharedPtr joint_state);
   bool isPassiveOrMimicDOF(const std::string& dof) const;
 
   rclcpp::Node::SharedPtr node_;
-  std::shared_ptr<const tesseract_environment::Environment> env_;
+  tesseract_environment::Environment::ConstPtr env_;
   tesseract_scene_graph::SceneState env_state_;
   int last_environment_revision_;
   std::map<std::string, rclcpp::Time> joint_time_;

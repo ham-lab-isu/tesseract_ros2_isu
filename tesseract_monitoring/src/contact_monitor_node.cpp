@@ -28,7 +28,6 @@
 #include <tesseract_common/macros.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <rclcpp/rclcpp.hpp>
-#include <boost/algorithm/string.hpp>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_environment/environment.h>
@@ -135,14 +134,14 @@ int main(int argc, char** argv)
 
   RCLCPP_INFO(node->get_logger(), "MONITORED_LINKS: %s", monitored_link_names_str.c_str());
 
-  auto contact_test_type = node->declare_parameter("contact_test_type", 2);
+  int contact_test_type = node->declare_parameter("contact_test_type", 2);
 
   if (contact_test_type < 0 || contact_test_type > 3)
   {
     RCLCPP_WARN(node->get_logger(), "Request type must be 0, 1, 2 or 3. Setting to 2(ALL)!");
     contact_test_type = 2;
   }
-  auto type = static_cast<tesseract_collision::ContactTestType>(contact_test_type);
+  tesseract_collision::ContactTestType type = static_cast<tesseract_collision::ContactTestType>(contact_test_type);
 
   tesseract_monitoring::ContactMonitor cm(monitor_namespace,
                                           std::move(env),

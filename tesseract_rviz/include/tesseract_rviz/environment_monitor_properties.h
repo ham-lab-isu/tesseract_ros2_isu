@@ -62,7 +62,7 @@ public Q_SLOTS:
   void onEnvironmentSnapshotTopicChanged();
   void onJointStateTopicChanged();
 
-private:
+protected:
   struct Implementation;
   std::unique_ptr<Implementation> data_;
 

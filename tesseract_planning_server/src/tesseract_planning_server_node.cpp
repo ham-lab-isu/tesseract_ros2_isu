@@ -30,11 +30,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_environment/environment.h>
-#include <tesseract_environment/environment_cache.h>
-#include <tesseract_environment/environment_monitor.h>
 #include <tesseract_planning_server/tesseract_planning_server.h>
-#include <tesseract_task_composer/core/task_composer_node.h>
-#include <tesseract_task_composer/core/task_composer_server.h>
 
 using namespace tesseract_environment;
 using tesseract_planning_server::TesseractPlanningServer;
@@ -42,10 +38,9 @@ using tesseract_planning_server::TesseractPlanningServer;
 const std::string ROBOT_DESCRIPTION_PARAM = "robot_description"; /**< Default ROS parameter for robot description */
 const std::string ROBOT_DESCRIPTION_SEMANTIC_PARAM = "robot_description_semantic";
 
-void updateCacheCallback(std::shared_ptr<tesseract_planning_server::TesseractPlanningServer>& planning_server)
-{
-  planning_server->getEnvironmentCache().refreshCache();
-}
+static std::shared_ptr<tesseract_planning_server::TesseractPlanningServer> planning_server;
+
+void updateCacheCallback() { planning_server->getEnvironmentCache().refreshCache(); }
 
 int main(int argc, char** argv)
 {
@@ -81,8 +76,7 @@ int main(int argc, char** argv)
   cache_refresh_rate = node->declare_parameter("cache_refresh_rate", cache_refresh_rate);
   std::string task_composer_config = node->declare_parameter("task_composer_config", "");
 
-  std::shared_ptr<tesseract_planning_server::TesseractPlanningServer> planning_server =
-      std::make_shared<TesseractPlanningServer>(node, ROBOT_DESCRIPTION_PARAM, monitor_namespace);
+  planning_server = std::make_shared<TesseractPlanningServer>(node, ROBOT_DESCRIPTION_PARAM, monitor_namespace);
 
   planning_server->getEnvironmentCache().setCacheSize(cache_size);
 
@@ -99,8 +93,8 @@ int main(int argc, char** argv)
   }
 
   // TODO: Rate seems in seconds, whereas this should be in Hz (otherwise it should be called interval)
-  auto update_cache = node->create_wall_timer(std::chrono::duration<double>(cache_refresh_rate),
-                                              [&] { updateCacheCallback(planning_server); });
+  auto update_cache =
+      node->create_wall_timer(std::chrono::duration<double>(cache_refresh_rate), [] { updateCacheCallback(); });
 
   RCLCPP_INFO(node->get_logger(), "Planning Server Running!");
 

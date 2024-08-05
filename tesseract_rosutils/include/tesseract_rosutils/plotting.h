@@ -39,8 +39,6 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_visualization/markers/contact_results_marker.h>
 #include <tesseract_command_language/poly/instruction_poly.h>
 
-#include <tesseract_environment/fwd.h>
-
 namespace tesseract_rosutils
 {
 /** @brief The BasicPlotting class */
@@ -49,11 +47,7 @@ class ROSPlotting : public tesseract_visualization::Visualization
 public:
   ROSPlotting(std::string root_link = "world", std::string topic_namespace = "tesseract");
 
-  ~ROSPlotting() override;
-  ROSPlotting(const ROSPlotting&) = default;
-  ROSPlotting& operator=(const ROSPlotting&) = default;
-  ROSPlotting(ROSPlotting&&) = default;
-  ROSPlotting& operator=(ROSPlotting&&) = default;
+  ~ROSPlotting();
 
   bool isConnected() const override;
 
@@ -67,24 +61,15 @@ public:
                       const tesseract_scene_graph::StateSolver& state_solver,
                       std::string ns = "") override;
 
-  void plotTrajectory(const tesseract_common::JointTrajectory& traj, std::string ns = "", std::string description = "");
-
-  void plotTrajectory(const tesseract_msgs::msg::Trajectory& traj);
+  void plotTrajectory(const tesseract_msgs::msg::Trajectory& traj, std::string ns = "");
 
   void plotTrajectory(const tesseract_environment::Environment& env,
                       const tesseract_planning::InstructionPoly& instruction,
-                      std::string ns = "",
-                      std::string description = "");
+                      std::string ns = "");
 
-  void plotTrajectories(const tesseract_environment::Environment& env,
-                        const std::vector<tesseract_planning::InstructionPoly>& instructions,
-                        std::string ns,
-                        std::string description);
-
-  void plotTrajectory(const std::vector<std::shared_ptr<const tesseract_environment::Command>>& cmds,
+  void plotTrajectory(const tesseract_environment::Commands& cmds,
                       const tesseract_planning::InstructionPoly& instruction,
-                      std::string = "",
-                      std::string description = "");
+                      std::string = "");
 
   void plotToolpath(const tesseract_environment::Environment& env,
                     const tesseract_planning::InstructionPoly& instruction,
@@ -99,8 +84,6 @@ public:
   void waitForInput(std::string message = "Hit enter key to continue!") override;
 
   const std::string& getRootLink() const;
-
-  void resetCounter();
 
   static visualization_msgs::msg::MarkerArray getMarkerAxisMsg(int& id_counter,
                                                                const std::string& frame_id,
@@ -134,9 +117,9 @@ public:
 private:
   std::string root_link_;       /**< Root link of markers */
   std::string topic_namespace_; /**< Namespace used when publishing markers */
-  int marker_counter_{ 0 };     /**< Counter when plotting */
-  rclcpp::Node::SharedPtr internal_node_;
-  rclcpp::executors::SingleThreadedExecutor::SharedPtr internal_node_executor_;
+  int marker_counter_;          /**< Counter when plotting */
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::executors::MultiThreadedExecutor::SharedPtr internal_node_executor_;
   std::shared_ptr<std::thread> internal_node_spinner_;
   rclcpp::Publisher<tesseract_msgs::msg::SceneGraph>::SharedPtr scene_pub_;           /**< Scene publisher */
   rclcpp::Publisher<tesseract_msgs::msg::Trajectory>::SharedPtr trajectory_pub_;      /**< Trajectory publisher */

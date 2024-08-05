@@ -35,9 +35,6 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_rosutils/plotting.h>
 #include <tesseract_rosutils/utils.h>
 
-#include <tesseract_environment/environment.h>
-#include <tesseract_scene_graph/graph.h>
-
 using namespace tesseract_examples;
 using namespace tesseract_rosutils;
 
@@ -66,7 +63,7 @@ int main(int argc, char** argv)
   std::string urdf_xml_string = node->declare_parameter(ROBOT_DESCRIPTION_PARAM, "");
   std::string srdf_xml_string = node->declare_parameter(ROBOT_SEMANTIC_PARAM, "");
 
-  if (ifopt)
+  if (ifopt == true)
   {
     RCLCPP_INFO(node->get_logger(), "Using TrajOpt Ifopt!");
   }

@@ -52,7 +52,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <tesseract_msgs/srv/save_scene_graph.hpp>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_environment/fwd.h>
+#include <tesseract_environment/environment.h>
 #include <tesseract_environment/environment_monitor.h>
 #include <tesseract_monitoring/current_state_monitor.h>
 
@@ -74,17 +74,15 @@ public:
    * @param robot_description The name of the ROS parameter that contains the URDF (in string format)
    * @param monitor_namespace A name identifying this monitor, must be unique
    */
-  ROSEnvironmentMonitor(const rclcpp::Node::SharedPtr& node,
-                        std::string robot_description,
-                        std::string monitor_namespace);  // NOLINT
+  ROSEnvironmentMonitor(rclcpp::Node::SharedPtr node, std::string robot_description, std::string monitor_namespace);
 
   /**
    * @brief Constructor
    * @param env The environment
    * @param monitor_namespace A name identifying this monitor, must be unique
    */
-  ROSEnvironmentMonitor(const rclcpp::Node::SharedPtr& node,  // NOLINT
-                        std::shared_ptr<tesseract_environment::Environment> env,
+  ROSEnvironmentMonitor(rclcpp::Node::SharedPtr node,
+                        tesseract_environment::Environment::Ptr env,
                         std::string monitor_namespace);
 
   ~ROSEnvironmentMonitor() override;
@@ -139,10 +137,11 @@ protected:
    */
   bool initialize();
 
-  rclcpp::Time last_update_time_ = rclcpp::Time(0L, RCL_ROS_TIME);        /// Last time the state was updated
-  rclcpp::Time last_robot_motion_time_ = rclcpp::Time(0L, RCL_ROS_TIME);  /// Last time the robot has moved
-  bool enforce_next_state_update_{ false };  /// flag to enforce immediate state update in onStateUpdate()
+  rclcpp::Time last_update_time_ = rclcpp::Time(0l, RCL_ROS_TIME);        /// Last time the state was updated
+  rclcpp::Time last_robot_motion_time_ = rclcpp::Time(0l, RCL_ROS_TIME);  /// Last time the robot has moved
+  bool enforce_next_state_update_;  /// flag to enforce immediate state update in onStateUpdate()
 
+  rclcpp::Node::SharedPtr node_;
   rclcpp::Node::SharedPtr internal_node_;
   rclcpp::executors::MultiThreadedExecutor::SharedPtr internal_node_executor_;
   std::shared_ptr<std::thread> internal_node_spinner_;
@@ -151,7 +150,7 @@ protected:
   // variables for planning scene publishing
   rclcpp::Publisher<tesseract_msgs::msg::EnvironmentState>::SharedPtr environment_publisher_;
   std::unique_ptr<std::thread> publish_environment_;
-  double publish_environment_frequency_{ 30.0 };
+  double publish_environment_frequency_;
 
   // variables for monitored environment
   rclcpp::Subscription<tesseract_msgs::msg::EnvironmentState>::SharedPtr monitored_environment_subscriber_;
@@ -191,13 +190,13 @@ private:
   void environmentPublishingThread();
 
   // called by current_state_monitor_ when robot state (as monitored on joint state topic) changes
-  void onJointStateUpdate(const sensor_msgs::msg::JointState::ConstSharedPtr joint_state);  // NOLINT
+  void onJointStateUpdate(const sensor_msgs::msg::JointState::ConstSharedPtr joint_state);
 
   // called by state_update_timer_ when a state update is pending
   void updateJointStateTimerCallback();
 
   // Callback for a new state msg
-  void newEnvironmentStateCallback(const tesseract_msgs::msg::EnvironmentState::ConstSharedPtr env);  // NOLINT
+  void newEnvironmentStateCallback(const tesseract_msgs::msg::EnvironmentState::ConstSharedPtr env);
 
   /** @brief Callback for modifying the environment via service request */
   void modifyEnvironmentCallback(tesseract_msgs::srv::ModifyEnvironment::Request::SharedPtr req,
@@ -225,7 +224,7 @@ private:
 
   /// True when we need to update the RobotState from current_state_monitor_
   // This field is protected by state_pending_mutex_
-  volatile bool state_update_pending_{ false };
+  volatile bool state_update_pending_;
 
   /// the amount of time to wait in between updates to the robot state
   // This field is protected by state_pending_mutex_
@@ -238,7 +237,7 @@ private:
 
   /// Last time the state was updated from current_state_monitor_
   // Only access this from callback functions (and constructor)
-  rclcpp::Time last_robot_state_update_wall_time_ = rclcpp::Time(0L, RCL_SYSTEM_TIME);
+  rclcpp::Time last_robot_state_update_wall_time_ = rclcpp::Time(0l, RCL_SYSTEM_TIME);
 
   std::atomic<bool> publish_{ false };
 

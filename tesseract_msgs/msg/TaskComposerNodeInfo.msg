@@ -13,19 +13,16 @@ string[] inbound_edges
 string[] outbound_edges
 
 # Input keys
-TaskComposerKey[] input_keys
+string[] input_keys
 
 # Output keys
-TaskComposerKey[] output_keys
+string[] output_keys
 
 # Value returned from the Task on completion
 int32 return_value
 
-# Status code
-int32 status_code
-
-# Status message
-string status_message
+# Debug message
+string message
 
 # Time elapsed
 float64 elapsed_time

@@ -21,10 +21,6 @@
 
 #include <QApplication>
 
-#include <tesseract_environment/environment.h>
-#include <tesseract_environment/command.h>
-#include <tesseract_environment/commands.h>
-
 namespace tesseract_rviz
 {
 struct JointTrajectoryMonitorProperties::Implementation
@@ -102,11 +98,9 @@ struct JointTrajectoryMonitorProperties::Implementation
       {
         tesseract_common::JointTrajectory joint_trajectory = tesseract_rosutils::fromMsg(joint_trajectory_msg);
         trajectory_set.appendJointTrajectory(joint_trajectory);
+        tesseract_gui::events::JointTrajectoryAdd event(component_info, trajectory_set);
+        QApplication::sendEvent(qApp, &event);
       }
-
-      trajectory_set.setDescription(msg->description);
-      tesseract_gui::events::JointTrajectoryAdd event(component_info, trajectory_set);
-      QApplication::sendEvent(qApp, &event);
     }
     catch (...)
     {
@@ -185,11 +179,11 @@ void JointTrajectoryMonitorProperties::onInitialize(rviz_common::DisplayContext*
   data_->tesseract_joint_trajectory_topic_property->initialize(ros_node_abstraction);
 
   data_->internal_node_executor = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
-  data_->internal_node_spinner = std::make_shared<std::thread>([this]() {
+  data_->internal_node_spinner = std::make_shared<std::thread>(std::thread{ [this]() {
     data_->internal_node_executor->add_node(data_->node);
     data_->internal_node_executor->spin();
     data_->internal_node_executor->remove_node(data_->node);
-  });
+  } });
 
   onLegacyJointTrajectoryTopicConnect();
   onTesseractJointTrajectoryTopicConnect();

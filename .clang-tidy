@@ -72,6 +72,7 @@ WarningsAsErrors: >
     -readability-suspicious-call-argument,
     -readability-function-size
 HeaderFilterRegex: '.*'
+AnalyzeTemporaryDtors: false
 FormatStyle:     none
 CheckOptions:
   - key:             modernize-use-override.AllowOverrideAndFinal

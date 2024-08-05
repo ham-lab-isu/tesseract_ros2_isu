@@ -1,5 +1,5 @@
 /**
- * @file environment_monitor_interface.cpp
+ * @file tesseract_monitor_interface.cpp
  * @brief This is a utility class for applying changes to multiple tesseract monitors
  *
  * @author Levi Armstrong
@@ -31,7 +31,6 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <tesseract_msgs/msg/environment_command.hpp>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_environment/environment.h>
 #include <tesseract_monitoring/environment_monitor_interface.h>
 #include <tesseract_rosutils/utils.h>
 #include <tesseract_monitoring/constants.h>
@@ -75,19 +74,15 @@ typename SrvType::Response::SharedPtr call_service(const std::string& name,
   return future.get();
 }
 
-ROSEnvironmentMonitorInterface::ROSEnvironmentMonitorInterface(rclcpp::Node::SharedPtr node, std::string env_name)
-  : EnvironmentMonitorInterface(std::move(env_name))
-  , node_(std::move(node))
+ROSEnvironmentMonitorInterface::ROSEnvironmentMonitorInterface(rclcpp::Node::SharedPtr node, const std::string env_name)
+  : EnvironmentMonitorInterface(std::move(env_name)), node_
+{
+  node
+}
 #if __has_include(<rclcpp/version.h>)  // ROS 2 Humble
-  , callback_group_
-{
-  node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive, false)
-}
+, callback_group_ { node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive, false) }
 #else  // ROS 2 Foxy
-  , callback_group_
-{
-  node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive)
-}
+, callback_group_ { node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive) }
 #endif
 , logger_{ node_->get_logger().get_child(env_name + "_env_monitor") }, env_name_{ env_name } {}
 
@@ -216,9 +211,12 @@ bool ROSEnvironmentMonitorInterface::applyCommand(const std::string& monitor_nam
   {
     return sendCommands(monitor_namespace, { command_msg });
   }
-  RCLCPP_ERROR_STREAM(node_->get_logger().get_child("environment_monitor_interface").get_child(monitor_namespace),
-                      "Failed to convert latest changes to message and update monitored environment!");
-  return false;
+  else
+  {
+    RCLCPP_ERROR_STREAM(node_->get_logger().get_child("environment_monitor_interface").get_child(monitor_namespace),
+                        "Failed to convert latest changes to message and update monitored environment!");
+    return false;
+  }
 }
 
 bool ROSEnvironmentMonitorInterface::applyCommands(const std::string& monitor_namespace,
@@ -229,9 +227,12 @@ bool ROSEnvironmentMonitorInterface::applyCommands(const std::string& monitor_na
   {
     return sendCommands(monitor_namespace, commands_msg);
   }
-  RCLCPP_ERROR_STREAM(node_->get_logger().get_child("environment_monitor_interface").get_child(monitor_namespace),
-                      "Failed to convert latest changes to message and update monitored environment!");
-  return false;
+  else
+  {
+    RCLCPP_ERROR_STREAM(node_->get_logger().get_child("environment_monitor_interface").get_child(monitor_namespace),
+                        "Failed to convert latest changes to message and update monitored environment!");
+    return false;
+  }
 }
 
 bool ROSEnvironmentMonitorInterface::applyCommands(const std::string& monitor_namespace,
@@ -385,7 +386,7 @@ ROSEnvironmentMonitorInterface::setEnvironmentState(const std::vector<std::strin
   return failed_namespace;
 }
 
-std::unique_ptr<tesseract_environment::Environment>
+tesseract_environment::Environment::UPtr
 ROSEnvironmentMonitorInterface::getEnvironment(const std::string& monitor_namespace) const
 {
   auto req = std::make_shared<tesseract_msgs::srv::GetEnvironmentInformation::Request>();

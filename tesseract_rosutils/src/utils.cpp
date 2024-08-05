@@ -32,7 +32,6 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <tesseract_msgs/msg/string_limits_pair.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/lexical_cast.hpp>
-#include <console_bridge/console.h>
 #if __has_include(<tf2_eigen/tf2_eigen.hpp>)
 #include <tf2_eigen/tf2_eigen.hpp>
 #else
@@ -40,33 +39,8 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #endif
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_geometry/geometries.h>
-
 #include <tesseract_common/resource_locator.h>
 #include <tesseract_rosutils/utils.h>
-#include <tesseract_environment/command.h>
-#include <tesseract_environment/commands.h>
-#include <tesseract_scene_graph/joint.h>
-#include <tesseract_srdf/kinematics_information.h>
-#include <tesseract_common/plugin_info.h>
-
-#include <tesseract_environment/utils.h>
-#include <tesseract_environment/events.h>
-#include <tesseract_environment/environment.h>
-
-#include <tesseract_scene_graph/graph.h>
-#include <tesseract_scene_graph/link.h>
-#include <tesseract_scene_graph/scene_state.h>
-
-#include <tesseract_srdf/srdf_model.h>
-#include <tesseract_srdf/utils.h>
-
-#include <tesseract_collision/core/common.h>
-#include <tesseract_collision/core/types.h>
-#include <tesseract_collision/core/discrete_contact_manager.h>
-#include <tesseract_collision/core/continuous_contact_manager.h>
-
-#include <tesseract_task_composer/core/task_composer_node_info.h>
 
 const std::string LOGGER_ID{ "tesseract_rosutils_utils" };
 namespace tesseract_rosutils
@@ -432,46 +406,6 @@ bool toMsg(tesseract_msgs::msg::Geometry& geometry_msgs, const tesseract_geometr
 
       break;
     }
-    case tesseract_geometry::GeometryType::POLYGON_MESH:
-    {
-      const auto& mesh = static_cast<const tesseract_geometry::PolygonMesh&>(geometry);
-
-      geometry_msgs.type = tesseract_msgs::msg::Geometry::POLYGON_MESH;
-
-      const tesseract_common::VectorVector3d& vertices = *(mesh.getVertices());
-      geometry_msgs.mesh.vertices.resize(vertices.size());
-      for (size_t i = 0; i < vertices.size(); ++i)
-      {
-        geometry_msgs.mesh.vertices[i].x = vertices[i](0);
-        geometry_msgs.mesh.vertices[i].y = vertices[i](1);
-        geometry_msgs.mesh.vertices[i].z = vertices[i](2);
-      }
-
-      const Eigen::VectorXi& faces = *(mesh.getFaces());
-      geometry_msgs.mesh.faces.resize(static_cast<size_t>(faces.size()));
-      for (size_t i = 0; i < static_cast<size_t>(faces.size()); ++i)
-        geometry_msgs.mesh.faces[i] = static_cast<unsigned>(faces[static_cast<unsigned>(i)]);
-
-      if (mesh.getResource() && mesh.getResource()->isFile())
-      {
-        geometry_msgs.mesh.file_path = mesh.getResource()->getFilePath();
-      }
-      if (geometry_msgs.mesh.file_path.empty())
-      {
-        geometry_msgs.mesh.scale[0] = 1;
-        geometry_msgs.mesh.scale[1] = 1;
-        geometry_msgs.mesh.scale[2] = 1;
-      }
-      else
-      {
-        const Eigen::Vector3f& scale = mesh.getScale().cast<float>();
-        geometry_msgs.mesh.scale[0] = scale.x();
-        geometry_msgs.mesh.scale[1] = scale.y();
-        geometry_msgs.mesh.scale[2] = scale.z();
-      }
-
-      break;
-    }
     case tesseract_geometry::GeometryType::CONVEX_MESH:
     {
       const auto& mesh = static_cast<const tesseract_geometry::ConvexMesh&>(geometry);
@@ -621,29 +555,6 @@ bool fromMsg(tesseract_geometry::Geometry::Ptr& geometry, const tesseract_msgs::
     else
       geometry = std::make_shared<tesseract_geometry::Mesh>(vertices, faces);
   }
-  else if (geometry_msg.type == tesseract_msgs::msg::Geometry::POLYGON_MESH)
-  {
-    auto vertices = std::make_shared<tesseract_common::VectorVector3d>(geometry_msg.mesh.vertices.size());
-    auto faces = std::make_shared<Eigen::VectorXi>(geometry_msg.mesh.faces.size());
-
-    for (unsigned int i = 0; i < geometry_msg.mesh.vertices.size(); ++i)
-      (*vertices)[i] = Eigen::Vector3d(
-          geometry_msg.mesh.vertices[i].x, geometry_msg.mesh.vertices[i].y, geometry_msg.mesh.vertices[i].z);
-
-    for (unsigned int i = 0; i < geometry_msg.mesh.faces.size(); ++i)
-      (*faces)[static_cast<int>(i)] = static_cast<int>(geometry_msg.mesh.faces[i]);
-
-    if (!geometry_msg.mesh.file_path.empty())
-      geometry = std::make_shared<tesseract_geometry::PolygonMesh>(
-          vertices,
-          faces,
-          std::make_shared<tesseract_common::SimpleLocatedResource>(geometry_msg.mesh.file_path,
-                                                                    geometry_msg.mesh.file_path),
-          Eigen::Vector3f(geometry_msg.mesh.scale[0], geometry_msg.mesh.scale[1], geometry_msg.mesh.scale[2])
-              .cast<double>());
-    else
-      geometry = std::make_shared<tesseract_geometry::PolygonMesh>(vertices, faces);
-  }
   else if (geometry_msg.type == tesseract_msgs::msg::Geometry::CONVEX_MESH)
   {
     auto vertices = std::make_shared<tesseract_common::VectorVector3d>(geometry_msg.mesh.vertices.size());
@@ -693,7 +604,7 @@ bool fromMsg(tesseract_geometry::Geometry::Ptr& geometry, const tesseract_msgs::
   else if (geometry_msg.type == tesseract_msgs::msg::Geometry::OCTREE)
   {
     std::shared_ptr<octomap::OcTree> om(static_cast<octomap::OcTree*>(octomap_msgs::msgToMap(geometry_msg.octomap)));
-    auto sub_type = static_cast<tesseract_geometry::OctreeSubType>(geometry_msg.octomap_sub_type.type);
+    auto sub_type = static_cast<tesseract_geometry::Octree::SubType>(geometry_msg.octomap_sub_type.type);
     geometry = std::make_shared<tesseract_geometry::Octree>(om, sub_type);
   }
 
@@ -1188,7 +1099,7 @@ toMsg(const tesseract_common::PairsCollisionMarginData& contact_margin_pairs)
 tesseract_common::CollisionMarginData fromMsg(const tesseract_msgs::msg::CollisionMarginData& contact_margin_data_msg)
 {
   tesseract_common::PairsCollisionMarginData contact_margin_pairs = fromMsg(contact_margin_data_msg.margin_pairs);
-  return { contact_margin_data_msg.default_margin, contact_margin_pairs };
+  return tesseract_common::CollisionMarginData(contact_margin_data_msg.default_margin, contact_margin_pairs);
 }
 
 tesseract_msgs::msg::CollisionMarginData toMsg(const tesseract_common::CollisionMarginData& contact_margin_data)
@@ -1655,10 +1566,13 @@ tesseract_environment::Command::Ptr fromMsg(const tesseract_msgs::msg::Environme
         return std::make_shared<tesseract_environment::AddSceneGraphCommand>(fromMsg(command_msg.scene_graph),
                                                                              command_msg.scene_graph_prefix);
       }
-      tesseract_scene_graph::Joint j = fromMsg(command_msg.scene_graph_joint);
+      else
+      {
+        tesseract_scene_graph::Joint j = fromMsg(command_msg.scene_graph_joint);
 
-      return std::make_shared<tesseract_environment::AddSceneGraphCommand>(
-          fromMsg(command_msg.scene_graph), j, command_msg.scene_graph_prefix);
+        return std::make_shared<tesseract_environment::AddSceneGraphCommand>(
+            fromMsg(command_msg.scene_graph), j, command_msg.scene_graph_prefix);
+      }
     }
     case tesseract_msgs::msg::EnvironmentCommand::CHANGE_JOINT_POSITION_LIMITS:
     {
@@ -1748,8 +1662,6 @@ void toMsg(const tesseract_msgs::msg::EnvironmentState::SharedPtr& state_msg,
 
 void toMsg(tesseract_msgs::msg::JointTrajectory& traj_msg, const tesseract_common::JointTrajectory& traj)
 {
-  traj_msg.description = traj.description;
-
   for (const auto& js : traj)
   {
     assert(js.joint_names.size() == static_cast<unsigned>(js.position.size()));
@@ -1777,7 +1689,6 @@ void toMsg(tesseract_msgs::msg::JointTrajectory& traj_msg, const tesseract_commo
 tesseract_common::JointTrajectory fromMsg(const tesseract_msgs::msg::JointTrajectory& traj_msg)
 {
   tesseract_common::JointTrajectory trajectory;
-  trajectory.description = traj_msg.description;
   for (const auto& js_msg : traj_msg.states)
   {
     assert(js_msg.joint_names.size() == static_cast<unsigned>(js_msg.position.size()));
@@ -1808,7 +1719,7 @@ bool processMsg(tesseract_environment::Environment& env, const sensor_msgs::msg:
   if (!isMsgEmpty(joint_state_msg))
   {
     std::unordered_map<std::string, double> joints;
-    for (auto i = 0U; i < joint_state_msg.name.size(); ++i)
+    for (auto i = 0u; i < joint_state_msg.name.size(); ++i)
     {
       joints[joint_state_msg.name[i]] = joint_state_msg.position[i];
     }
@@ -2330,8 +2241,7 @@ tesseract_environment::Environment::UPtr fromMsg(const tesseract_msgs::msg::Envi
   return env;
 }
 
-bool toMsg(tesseract_msgs::msg::TaskComposerNodeInfo& node_info_msg,
-           const tesseract_planning::TaskComposerNodeInfo& node_info)
+bool toMsg(tesseract_msgs::msg::TaskComposerNodeInfo& node_info_msg, tesseract_planning::TaskComposerNodeInfo node_info)
 {
   using namespace tesseract_planning;
   node_info_msg.name = node_info.name;
@@ -2342,44 +2252,10 @@ bool toMsg(tesseract_msgs::msg::TaskComposerNodeInfo& node_info_msg,
   node_info_msg.outbound_edges.reserve(node_info.outbound_edges.size());
   for (const auto& edge : node_info.outbound_edges)
     node_info_msg.outbound_edges.push_back(boost::uuids::to_string(edge));
-
-  for (const auto& pair : node_info.input_keys.data())
-  {
-    tesseract_msgs::msg::TaskComposerKey key_msg;
-    key_msg.port = pair.first;
-    if (pair.second.index() == 0)
-    {
-      key_msg.keys.push_back(std::get<std::string>(pair.second));
-    }
-    else
-    {
-      for (const auto& key : std::get<std::vector<std::string>>(pair.second))
-        key_msg.keys.push_back(key);
-    }
-    node_info_msg.input_keys.push_back(key_msg);
-  }
-
-  for (const auto& pair : node_info.output_keys.data())
-  {
-    tesseract_msgs::msg::TaskComposerKey key_msg;
-    key_msg.port = pair.first;
-    if (pair.second.index() == 0)
-    {
-      key_msg.type_index = 0;
-      key_msg.keys.push_back(std::get<std::string>(pair.second));
-    }
-    else
-    {
-      key_msg.type_index = 1;
-      for (const auto& key : std::get<std::vector<std::string>>(pair.second))
-        key_msg.keys.push_back(key);
-    }
-    node_info_msg.output_keys.push_back(key_msg);
-  }
-
+  node_info_msg.input_keys = node_info.input_keys;
+  node_info_msg.output_keys = node_info.output_keys;
   node_info_msg.return_value = node_info.return_value;
-  node_info_msg.status_code = node_info_msg.status_code;
-  node_info_msg.status_message = node_info_msg.status_message;
+  node_info_msg.message = node_info.message;
   node_info_msg.elapsed_time = node_info.elapsed_time;
 
   return true;
@@ -2397,26 +2273,10 @@ tesseract_planning::TaskComposerNodeInfo::Ptr fromMsg(const tesseract_msgs::msg:
   node_info->outbound_edges.reserve(node_info_msg.outbound_edges.size());
   for (const auto& edge : node_info_msg.outbound_edges)
     node_info->outbound_edges.push_back(boost::lexical_cast<boost::uuids::uuid>(edge));
-
-  for (const auto& key_msg : node_info_msg.input_keys)
-  {
-    if (key_msg.type_index == 0)
-      node_info->input_keys.add(key_msg.port, key_msg.keys.front());
-    else
-      node_info->input_keys.add(key_msg.port, key_msg.keys);
-  }
-
-  for (const auto& key_msg : node_info_msg.output_keys)
-  {
-    if (key_msg.type_index == 0)
-      node_info->output_keys.add(key_msg.port, key_msg.keys.front());
-    else
-      node_info->output_keys.add(key_msg.port, key_msg.keys);
-  }
-
+  node_info->input_keys = node_info_msg.input_keys;
+  node_info->output_keys = node_info_msg.output_keys;
   node_info->return_value = node_info_msg.return_value;
-  node_info->status_code = node_info_msg.status_code;
-  node_info->status_message = node_info_msg.status_message;
+  node_info->message = node_info_msg.message;
   node_info->elapsed_time = node_info_msg.elapsed_time;
 
   return node_info;
@@ -2429,9 +2289,9 @@ trajectory_msgs::msg::JointTrajectory toMsg(const tesseract_common::JointTraject
   std::vector<std::string> joint_names;
   std::map<std::string, int> joint_names_indices;
   trajectory_msgs::msg::JointTrajectoryPoint last_point;
-  for (const auto& joint_state : joint_trajectory)
+  for (auto joint_state : joint_trajectory)
   {
-    for (const auto& joint : joint_state.joint_names)
+    for (auto joint : joint_state.joint_names)
     {
       if (std::find(joint_names.begin(), joint_names.end(), joint) == joint_names.end())
       {
@@ -2445,25 +2305,26 @@ trajectory_msgs::msg::JointTrajectory toMsg(const tesseract_common::JointTraject
       std::vector<double>(initial_points.data(), initial_points.data() + initial_points.rows() * initial_points.cols());
   result.joint_names = joint_names;
   std::vector<trajectory_msgs::msg::JointTrajectoryPoint> points;
-  for (const auto& joint : joint_trajectory)
+  for (unsigned long i = 0; i < joint_trajectory.size(); i++)
   {
     trajectory_msgs::msg::JointTrajectoryPoint current_point;
     current_point.positions = last_point.positions;
     current_point.velocities = std::vector<double>(joint_names.size(), 0);
     current_point.accelerations = std::vector<double>(joint_names.size(), 0);
     current_point.effort = std::vector<double>(joint_names.size(), 0);
-    current_point.time_from_start = rclcpp::Duration::from_seconds(joint.time);
-    for (Eigen::Index j = 0; j < static_cast<Eigen::Index>(joint.joint_names.size()); j++)
+    current_point.time_from_start = rclcpp::Duration::from_seconds(joint_trajectory[i].time);
+    for (Eigen::Index j = 0; j < static_cast<Eigen::Index>(joint_trajectory[i].joint_names.size()); j++)
     {
-      auto joint_index = static_cast<std::size_t>(joint_names_indices[joint.joint_names[static_cast<std::size_t>(j)]]);
-      if (joint.position.size() > 0)
-        current_point.positions[joint_index] = joint.position[j];
-      if (joint.velocity.size() > 0)
-        current_point.velocities[joint_index] = joint.velocity[j];
-      if (joint.acceleration.size() > 0)
-        current_point.accelerations[joint_index] = joint.acceleration[j];
-      if (joint.effort.size() > j)
-        current_point.effort[joint_index] = joint.effort[j];
+      auto joint_index =
+          static_cast<std::size_t>(joint_names_indices[joint_trajectory[i].joint_names[static_cast<std::size_t>(j)]]);
+      if (joint_trajectory[i].position.size() > 0)
+        current_point.positions[joint_index] = joint_trajectory[i].position[j];
+      if (joint_trajectory[i].velocity.size() > 0)
+        current_point.velocities[joint_index] = joint_trajectory[i].velocity[j];
+      if (joint_trajectory[i].acceleration.size() > 0)
+        current_point.accelerations[joint_index] = joint_trajectory[i].acceleration[j];
+      if (joint_trajectory[i].effort.size() > j)
+        current_point.effort[joint_index] = joint_trajectory[i].effort[j];
     }
     last_point = current_point;
     points.push_back(current_point);
